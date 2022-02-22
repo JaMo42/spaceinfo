@@ -219,7 +219,7 @@ space_info (const SpaceInfo &si, bool show_cursor)
   else
     {
       first = S_cursor - rows_2;
-      last = S_cursor - (rows - rows_2);
+      last = S_cursor + (rows - rows_2);
     }
 
   print_items (si, first, last, size_width, show_cursor);
