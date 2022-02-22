@@ -84,6 +84,7 @@ key_down:
             display::set_cursor (si->item_count ());
             break;
           case 10: // Enter
+          case ' ':
             pending_path = display::select (*si);
             if (fs::is_directory (pending_path) && pending_path != dev_path)
               {
@@ -101,6 +102,11 @@ key_down:
                 display::footer (*si);
                 display::set_cursor (0);
               }
+            break;
+          case 'r':
+          case 'i':
+            sort_ascending = !sort_ascending;
+            si->sort (sort_ascending);
             break;
         }
       display::space_info (*si);
