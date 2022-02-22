@@ -15,13 +15,13 @@ fill_line (int row)
 }
 
 static inline void
-bar (f64 fullness, usize length, char fill='#', char empty=' ')
+bar (f64 fullness, int length, char fill='#', char empty=' ')
 {
   auto print_n = [](char c, unsigned n) {
     while (n--)
       addch (c);
   };
-  usize fill_amount = static_cast<usize> (std::round (fullness * length));
+  int fill_amount = std::lround (fullness * length);
   print_n (fill, fill_amount);
   print_n (empty, length - fill_amount);
 }
