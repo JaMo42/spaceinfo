@@ -9,9 +9,10 @@ SpaceInfo::add_parent (const fs::path &parent)
 }
 
 void
-SpaceInfo::add (const fs::path &path, u64 size, u64 file_count,
+SpaceInfo::add (const fs::path &full_path, u64 size, u64 file_count,
                 const char *error)
 {
+  const fs::path path = full_path.filename ();
   file_count_ += file_count;
   insert_sorted (Item { path, size, error });
   total_ += size;
@@ -23,7 +24,6 @@ void
 SpaceInfo::sort (bool ascending)
 {
   auto comp = [ascending] (const Item &a, const Item &b) {
-    // ToDo: should ascending affect aphabetical sorting as well?
     return (a.size == b.size
             ? a.path < b.path
             : (a.size > b.size) ^ ascending);
@@ -118,7 +118,7 @@ process_dir (const fs::path &path, ProcessingCallback callback)
           else if (entry.is_directory ())
             {
               if (!directory_size_and_file_count (entry.path (), size, count))
-                // ToDo: can probably have other errors as well
+                // ToDo: get the actual error message
                 si->add (entry.path (), 0, 1, "Permission denied");
               else
                 si->add (entry.path (), size, count);

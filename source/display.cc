@@ -1,11 +1,14 @@
 #include "display.hh"
 #include "options.hh"
+#include "select.hh"
 #include <ncurses.h>
+
+constexpr int SELECTION_COLOR = 10;
 
 static std::string S_bar;
 static usize S_cursor;
 
-namespace display
+namespace Display
 {
 
 static inline void
@@ -34,6 +37,10 @@ begin ()
   noecho ();
   cbreak ();
   nodelay (stdscr, FALSE);
+  start_color ();
+  use_default_colors ();
+
+  init_pair (SELECTION_COLOR, COLOR_BLACK, COLOR_YELLOW);
 
   S_bar.assign (getmaxx (stdscr), ' ');
 }
@@ -147,7 +154,6 @@ size_column_width (const SpaceInfo &si)
 {
   auto get_width = [](const SpaceInfo::value_type &item) {
     return (item.error
-            // The plus 2 is for the extra
             ? std::max (0, static_cast<int> (strlen (item.error)) - (Options::bar_length + 2))
             : print_size<true> (item.size));
   };
@@ -163,8 +169,11 @@ print_item (const SpaceInfo &si, usize idx, int row, int size_width,
             bool highlight)
 {
   const SpaceInfo::value_type &item = si[idx];
+  const bool is_selected = Select::is_selected (idx);
   if (highlight)
     attron (A_REVERSE);
+  else if (is_selected)
+    attron (COLOR_PAIR (SELECTION_COLOR));
   fill_line (row);
   move (row, 0);
   addch (' ');
@@ -186,12 +195,14 @@ print_item (const SpaceInfo &si, usize idx, int row, int size_width,
         }
       addch (' ');
       if constexpr (std::is_same_v<fs::path::value_type, char>)
-        addstr (item.path.filename ().c_str ());
+        addstr (item.path.c_str ());
       else
-        addstr (item.path.filename ().generic_string ().c_str ());
+        addstr (item.path.generic_string ().c_str ());
     }
   if (highlight)
     attroff (A_REVERSE);
+  else if (is_selected)
+    attroff (COLOR_PAIR (SELECTION_COLOR));
 }
 
 static void
@@ -267,9 +278,31 @@ set_cursor (usize to)
 }
 
 fs::path
-select (const SpaceInfo &from)
+select (const SpaceInfo &from, const fs::path &current)
 {
-  return from[S_cursor].path;
+  const auto &p = from[S_cursor].path;
+  if (p.is_absolute ())
+    return p;
+  return current / p;
+}
+
+std::string_view
+input (std::string_view purpose)
+{
+  static const int S_buf_size = 80;
+  static char S_buf[S_buf_size];
+  const int row = getmaxy (stdscr) - 1;
+  attron (A_REVERSE);
+  fill_line (row);
+  move (row, 0);
+  printw ("%s: ", purpose.data ());
+  curs_set (1);
+  echo ();
+  getnstr (S_buf, S_buf_size);
+  curs_set (0);
+  noecho ();
+  attroff (A_REVERSE);
+  return S_buf;
 }
 
 }

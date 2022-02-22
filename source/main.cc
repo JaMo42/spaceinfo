@@ -1,14 +1,15 @@
 #include "stdafx.hh"
+#include "options.hh"
 #include "space_info.hh"
 #include "display.hh"
-#include "options.hh"
+#include "select.hh"
 
 static void
 show_progress (const SpaceInfo &si)
 {
-  display::space_info (si, false);
-  display::footer (si);
-  display::refresh ();
+  Display::space_info (si, false);
+  Display::footer (si);
+  Display::refresh ();
 }
 
 static void
@@ -22,6 +23,7 @@ fail ()
 int
 main (const int argc, const char **argv)
 {
+  const fs::path dev_path = "/dev";
   SpaceInfo *si;
   const char *const arg = parse_args (argc, argv);
   fs::path path = (arg
@@ -29,30 +31,32 @@ main (const int argc, const char **argv)
                    : fs::current_path ());
   fs::path pending_path;
   bool sort_ascending = false;
-  const fs::path dev_path = "/dev";
 
   // The program gets stuck when entering the /dev/ directory (at least on my
   // machine :^) ) so we do not permit entering it.
   // It also reports a bogus size when showing the root directory (in my case
   // 128 TB) so we display 'Not supported' instead of the size.
-  // (ToDo: maybe just hide it?)
   if (path == dev_path)
     {
       std::fputs ("The /dev directory is not supported.\n", stderr);
       return 1;
     }
 
-  display::begin ();
-  display::header (path);
+  Select::clear_selection ();
+
+  Display::begin ();
+  Display::header (path);
   si = process_dir (path, show_progress);
   if (si == nullptr)
     {
-      display::end ();
+      Display::end ();
       fail ();
     }
-  display::space_info (*si);
-  display::footer (*si);
-  display::refresh ();
+  Display::space_info (*si);
+  Display::footer (*si);
+  Display::refresh ();
+
+  std::string_view search = ""sv;
 
   int ch;
   while ((ch = getch ()) != 'q')
@@ -62,12 +66,12 @@ main (const int argc, const char **argv)
           case KEY_UP:
           case 'k':
 key_up:
-            display::move_cursor (-1, si->item_count () + 1);
+            Display::move_cursor (-1, si->item_count () + 1);
             break;
           case KEY_DOWN:
           case 'j':
 key_down:
-            display::move_cursor (1, si->item_count () + 1);
+            Display::move_cursor (1, si->item_count () + 1);
             break;
           case 27:
             (void)getch ();
@@ -78,29 +82,32 @@ key_down:
               goto key_down;
             break;
           case 'g':
-            display::set_cursor (0);
+            Display::set_cursor (0);
             break;
           case 'G':
-            display::set_cursor (si->item_count ());
+            Display::set_cursor (si->item_count ());
             break;
           case 10: // Enter
           case ' ':
-            pending_path = display::select (*si);
+            pending_path = Display::select (*si, path);
             if (fs::is_directory (pending_path) && pending_path != dev_path)
               {
                 path.swap (pending_path);
-                display::clear ();
-                display::header (path);
+                Display::clear ();
+                Display::header (path);
                 si = process_dir (path, show_progress);
                 if (si == nullptr)
                   {
                     path.swap (pending_path);
-                    display::header (path);
+                    Display::header (path);
                     si = process_dir (path);
                   }
                 else
-                  display::set_cursor (0);
-                display::footer (*si);
+                  {
+                    Display::set_cursor (0);
+                    Select::select (search, *si);
+                  }
+                Display::footer (*si);
               }
             break;
           case 'r':
@@ -108,9 +115,23 @@ key_down:
             sort_ascending = !sort_ascending;
             si->sort (sort_ascending);
             break;
+          case '/':
+            search = Display::input ("Search");
+            Display::footer (*si);
+            Select::select (search, *si);
+            break;
+          case 'n':
+            Select::next ();
+            break;
+          case 'N':
+            Select::prev ();
+            break;
+          case 'c':  // ToDo: probably use a differeny key/way to clear
+            Select::clear_selection ();
+            break;
         }
-      display::space_info (*si);
-      display::refresh ();
+      Display::space_info (*si);
+      Display::refresh ();
     }
-  display::end ();
+  Display::end ();
 }
