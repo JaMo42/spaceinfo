@@ -15,5 +15,5 @@ void footer (const SpaceInfo &si);
 
 void move_cursor (ssize by, usize end);
 void set_cursor (usize to);
-fs::path select (const SpaceInfo &from, const fs::path &current);
+fs::path select (const SpaceInfo &from);
 }

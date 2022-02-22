@@ -68,7 +68,7 @@ key_down:
             display::set_cursor (si->item_count () - 1);
             break;
           case 10: // Enter
-            pending_path = display::select (*si, path);
+            pending_path = display::select (*si);
             if (fs::is_directory (pending_path))
               {
                 path.swap (pending_path);

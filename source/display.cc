@@ -161,16 +161,21 @@ print_item (const SpaceInfo &si, usize idx, int row, int size_width,
   fill_line (row);
   move (row, 0);
   addch (' ');
-  print_size (item.size, size_width);
-  addch (' ');
-  addch ('[');
-  bar (si.size_relative_to_biggest (item), 10);
-  addch (']');
-  addch (' ');
-  if constexpr (std::is_same_v<fs::path::value_type, char>)
-    addstr (item.path.filename ().c_str ());
+  if (item.display_name)
+    addstr (item.display_name);
   else
-    addstr (item.path.filename ().generic_string ().c_str ());
+    {
+      print_size (item.size, size_width);
+      addch (' ');
+      addch ('[');
+      bar (si.size_relative_to_biggest (item), 10);
+      addch (']');
+      addch (' ');
+      if constexpr (std::is_same_v<fs::path::value_type, char>)
+        addstr (item.path.filename ().c_str ());
+      else
+        addstr (item.path.filename ().generic_string ().c_str ());
+    }
   if (highlight)
     attroff (A_REVERSE);
 }
@@ -179,16 +184,10 @@ static void
 print_items (const SpaceInfo &si, usize from, usize to, int size_width,
              bool cursor)
 {
-  usize row = 2;
-  if (cursor && S_cursor == 0)
-    attron (A_REVERSE);
-  fill_line (1);
-  mvaddstr (1, 0, "..");
-  if (cursor && S_cursor == 0)
-    attroff (A_REVERSE);
+  usize row = 1;
   for (usize i = from; i <= to; ++i, ++row)
     {
-      print_item (si, i, row, size_width, cursor && ((i + 1) == S_cursor));
+      print_item (si, i, row, size_width, cursor && (i == S_cursor));
     }
 }
 
@@ -242,9 +241,7 @@ move_cursor (ssize by, usize end)
 {
   if (S_cursor == 0 && by < 0)
     return;
-  // would be `>= end` but we allow one more since the `..` is not part of the
-  // space info
-  if (S_cursor + by > end)
+  if (S_cursor + by >= end)
     return;
   S_cursor += by;
 }
@@ -252,21 +249,13 @@ move_cursor (ssize by, usize end)
 void
 set_cursor (usize to)
 {
-  S_cursor = to + 1;
+  S_cursor = to;
 }
 
 fs::path
-select (const SpaceInfo &from, const fs::path &current)
+select (const SpaceInfo &from)
 {
-  const auto root = fs::current_path().root_path();
-  if (S_cursor == 0)
-    {
-      if (current == root)
-        return root;
-      return current.parent_path ();
-    }
-  else
-    return from[S_cursor - 1].path;
+  return from[S_cursor].path;
 }
 
 }

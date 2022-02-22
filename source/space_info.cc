@@ -3,6 +3,12 @@
 std::error_code G_error;
 
 void
+SpaceInfo::add_parent (const fs::path &parent)
+{
+  items_.emplace_back (parent, 0, "..");
+}
+
+void
 SpaceInfo::add (const fs::path &path, u64 size, u64 file_count)
 {
   file_count_ += file_count;
@@ -21,14 +27,19 @@ SpaceInfo::sort (bool ascending)
             ? a.path < b.path
             : (a.size > b.size) ^ ascending);
   };
-  std::sort (items_.begin (), items_.end (), comp);
+  std::sort (items_.begin () + 1, items_.end (), comp);
 }
 
 void
 SpaceInfo::insert_sorted (Item &&item)
 {
+  if (items_.size () == 1)
+    {
+      items_.push_back (item);
+      return;
+    }
   items_.insert (
-    std::upper_bound (items_.begin (), items_.end (), item,
+    std::upper_bound (items_.begin () + 1, items_.end (), item,
                       [](const Item &a, const Item &b) {
                         return (a.size == b.size
                                 ? a.path < b.path
@@ -90,7 +101,8 @@ process_dir (const fs::path &path, ProcessingCallback callback)
     return &G_dirs[path];
 
   SpaceInfo *const si
-    = &G_dirs.emplace (std::make_pair (path, SpaceInfo {path})).first->second;
+    = &G_dirs.emplace (std::make_pair (path, SpaceInfo {})).first->second;
+  si->add_parent (path.parent_path ());
 
   if (!safe_directory_iterator (
         fs::directory_iterator (path),

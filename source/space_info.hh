@@ -7,6 +7,7 @@ class SpaceInfo
   {
     fs::path path;
     u64 size;
+    const char *display_name = nullptr;
   };
 
 public:
@@ -16,6 +17,11 @@ public:
   using const_iterator = items_type::const_iterator;
 
 public:
+  // ToDo: adding a constructor that does this causes some 10 page compiler
+  //       error?
+  void
+  add_parent (const fs::path &parent);
+
   void
   add (const fs::path &path, u64 size, u64 file_count = 1);
 
@@ -25,7 +31,7 @@ public:
   u64 total () const { return total_; }
   u64 biggest () const { return biggest_; }
   u64 total_file_count () const { return file_count_; }
-  u64 item_count () const { return items_.size (); }
+  u64 item_count () const { return items_.size () - 1; }
 
   const_iterator begin () const { return items_.cbegin (); }
   const_iterator end () const { return items_.cend (); }
