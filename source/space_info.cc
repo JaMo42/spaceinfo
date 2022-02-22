@@ -99,6 +99,7 @@ directory_size_and_file_count (const fs::path &path, u64 &size, u64 &count)
 SpaceInfo *
 process_dir (const fs::path &path, ProcessingCallback callback)
 {
+  const fs::path dev_path = "/dev";
   u64 size, count;
 
   if (G_dirs.contains (path))
@@ -111,7 +112,10 @@ process_dir (const fs::path &path, ProcessingCallback callback)
   if (!safe_directory_iterator (
         path,
         [&](const fs::directory_entry &entry) {
-          if (entry.is_directory ())
+          // See comment in the main function for why this is not supported
+          if (entry.path () == dev_path)
+            si->add (entry.path (), 0, 0, "Not supported");
+          else if (entry.is_directory ())
             {
               if (!directory_size_and_file_count (entry.path (), size, count))
                 // ToDo: can probably have other errors as well

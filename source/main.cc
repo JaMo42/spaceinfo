@@ -24,7 +24,23 @@ main (const int argc, const char **argv)
 {
   SpaceInfo *si;
   const char *const arg = parse_args (argc, argv);
-  fs::path path = arg ? arg : fs::current_path (), pending_path;
+  fs::path path = (arg
+                   ? fs::canonical (fs::path (arg))
+                   : fs::current_path ());
+  fs::path pending_path;
+  bool sort_ascending = false;
+  const fs::path dev_path = "/dev";
+
+  // The program gets stuck when entering the /dev/ directory (at least on my
+  // machine :^) ) so we do not permit entering it.
+  // It also reports a bogus size when showing the root directory (in my case
+  // 128 TB) so we display 'Not supported' instead of the size.
+  // (ToDo: maybe just hide it?)
+  if (path == dev_path)
+    {
+      std::fputs ("The /dev directory is not supported.\n", stderr);
+      return 1;
+    }
 
   display::begin ();
   display::header (path);
@@ -69,7 +85,7 @@ key_down:
             break;
           case 10: // Enter
             pending_path = display::select (*si);
-            if (fs::is_directory (pending_path))
+            if (fs::is_directory (pending_path) && pending_path != dev_path)
               {
                 path.swap (pending_path);
                 display::clear ();
