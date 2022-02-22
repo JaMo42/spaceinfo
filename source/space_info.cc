@@ -130,6 +130,9 @@ process_dir (const fs::path &path, ProcessingCallback callback)
             callback (*si);
         }
       ))
-    return nullptr;
+    {
+      G_dirs.erase (path);
+      return nullptr;
+    }
   return si;
 }
