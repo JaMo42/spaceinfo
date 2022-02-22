@@ -145,10 +145,17 @@ print_size (u64 size, int width = 0)
 static int
 size_column_width (const SpaceInfo &si)
 {
-  auto compare = [](const SpaceInfo::value_type &a, const SpaceInfo::value_type &b) {
-    return print_size<true> (a.size) < print_size<true> (b.size);
+  auto get_width = [](const SpaceInfo::value_type &item) {
+    return (item.error
+            // The plus 2 is for the extra
+            ? std::max (0, static_cast<int> (strlen (item.error)) - (Options::bar_length + 2))
+            : print_size<true> (item.size));
   };
-  return print_size<true> (std::max_element (si.begin (), si.end (), compare)->size);
+  auto compare = [&get_width](const SpaceInfo::value_type &a,
+                              const SpaceInfo::value_type &b) {
+    return get_width (a) < get_width (b);
+  };
+  return get_width (*std::max_element (si.begin (), si.end (), compare));
 }
 
 static void
@@ -165,11 +172,18 @@ print_item (const SpaceInfo &si, usize idx, int row, int size_width,
     addstr (item.display_name);
   else
     {
-      print_size (item.size, size_width);
-      addch (' ');
-      addch ('[');
-      bar (si.size_relative_to_biggest (item), 10);
-      addch (']');
+      if (item.error)
+        {
+          printw ("%-*s", size_width + Options::bar_length + 3, item.error);
+        }
+      else
+        {
+          print_size (item.size, size_width);
+          addch (' ');
+          addch ('[');
+          bar (si.size_relative_to_biggest (item), Options::bar_length);
+          addch (']');
+        }
       addch (' ');
       if constexpr (std::is_same_v<fs::path::value_type, char>)
         addstr (item.path.filename ().c_str ());

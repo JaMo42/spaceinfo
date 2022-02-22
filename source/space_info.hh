@@ -7,6 +7,7 @@ class SpaceInfo
   {
     fs::path path;
     u64 size;
+    const char *error = nullptr;
     const char *display_name = nullptr;
   };
 
@@ -23,7 +24,8 @@ public:
   add_parent (const fs::path &parent);
 
   void
-  add (const fs::path &path, u64 size, u64 file_count = 1);
+  add (const fs::path &path, u64 size, u64 file_count = 1,
+       const char *error = nullptr);
 
   void
   sort (bool ascending = false);

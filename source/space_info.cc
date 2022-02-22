@@ -5,14 +5,15 @@ std::error_code G_error;
 void
 SpaceInfo::add_parent (const fs::path &parent)
 {
-  items_.emplace_back (parent, 0, "..");
+  items_.emplace_back (parent, 0, nullptr, "..");
 }
 
 void
-SpaceInfo::add (const fs::path &path, u64 size, u64 file_count)
+SpaceInfo::add (const fs::path &path, u64 size, u64 file_count,
+                const char *error)
 {
   file_count_ += file_count;
-  insert_sorted (Item { path, size });
+  insert_sorted (Item { path, size, error });
   total_ += size;
   if (size > biggest_)
     biggest_ = size;
@@ -62,10 +63,13 @@ can_get_size (const fs::file_status &stat)
     }
 }
 
-template <class It, class UnaryFunction>
+template <class IteratorType = fs::directory_iterator, class UnaryFunction>
 static bool
-safe_directory_iterator (It &&dir_it, UnaryFunction f)
+safe_directory_iterator (const fs::path &path, UnaryFunction f)
 {
+  auto dir_it = IteratorType (path, G_error);
+  if (G_error)
+    return false;
   const auto end = fs::end (dir_it);
   for (auto it = fs::begin (dir_it); it != end; it.increment (G_error))
     {
@@ -80,8 +84,8 @@ bool
 directory_size_and_file_count (const fs::path &path, u64 &size, u64 &count)
 {
   size = count = 0;
-  return safe_directory_iterator (
-    fs::recursive_directory_iterator (path),
+  return safe_directory_iterator<fs::recursive_directory_iterator> (
+    path,
     [&](const fs::directory_entry &entry) {
       if (entry.exists () && can_get_size (entry.status ()))
         {
@@ -105,17 +109,18 @@ process_dir (const fs::path &path, ProcessingCallback callback)
   si->add_parent (path.parent_path ());
 
   if (!safe_directory_iterator (
-        fs::directory_iterator (path),
+        path,
         [&](const fs::directory_entry &entry) {
           if (entry.is_directory ())
             {
               if (!directory_size_and_file_count (entry.path (), size, count))
-                // ToDo: allow SpaceInfo::Item to represent errors
-                si->add (entry.path (), -1, 1);
+                // ToDo: can probably have other errors as well
+                si->add (entry.path (), 0, 1, "Permission denied");
               else
                 si->add (entry.path (), size, count);
             }
           else if (entry.exists () && can_get_size (entry.status ()))
+            // ToDo: do not follow links when getting file size
             si->add (entry.path (), entry.file_size ());
           if (callback)
             callback (*si);
