@@ -92,15 +92,15 @@ key_down:
                 display::clear ();
                 display::header (path);
                 si = process_dir (path, show_progress);
-                // ToDo: stay in previous directory and inform user about error
-                //       instead of just quitting
                 if (si == nullptr)
                   {
-                    display::end ();
-                    fail ();
+                    path.swap (pending_path);
+                    display::header (path);
+                    si = process_dir (path);
                   }
+                else
+                  display::set_cursor (0);
                 display::footer (*si);
-                display::set_cursor (0);
               }
             break;
           case 'r':
