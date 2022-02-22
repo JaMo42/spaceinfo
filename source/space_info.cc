@@ -111,7 +111,7 @@ process_dir (const fs::path &path, ProcessingCallback callback)
             {
               if (!directory_size_and_file_count (entry.path (), size, count))
                 // ToDo: allow SpaceInfo::Item to represent errors
-                si->add (entry.path (), -1, -1);
+                si->add (entry.path (), -1, 1);
               else
                 si->add (entry.path (), size, count);
             }

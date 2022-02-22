@@ -203,14 +203,14 @@ space_info (const SpaceInfo &si, bool show_cursor)
   if (item_count <= rows)
     {
       first = 0;
-      last = item_count - 1;
+      last = item_count;
     }
   else if (S_cursor < rows_2)
     {
       first = 0;
       last = rows;
     }
-  else if (S_cursor > (item_count - rows_2))
+  else if (S_cursor >= (item_count - rows_2))
     {
       first = item_count - rows;
       last = item_count;

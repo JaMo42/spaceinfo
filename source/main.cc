@@ -46,12 +46,12 @@ main (const int argc, const char **argv)
           case KEY_UP:
           case 'k':
 key_up:
-            display::move_cursor (-1, si->item_count ());
+            display::move_cursor (-1, si->item_count () + 1);
             break;
           case KEY_DOWN:
           case 'j':
 key_down:
-            display::move_cursor (1, si->item_count ());
+            display::move_cursor (1, si->item_count () + 1);
             break;
           case 27:
             (void)getch ();
@@ -65,7 +65,7 @@ key_down:
             display::set_cursor (0);
             break;
           case 'G':
-            display::set_cursor (si->item_count () - 1);
+            display::set_cursor (si->item_count ());
             break;
           case 10: // Enter
             pending_path = display::select (*si);
