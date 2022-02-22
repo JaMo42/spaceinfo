@@ -19,21 +19,6 @@ fail ()
   std::exit (1);
 }
 
-static SpaceInfo *
-do_process_dir (const fs::path &p)
-{
-  try
-    {
-      return process_dir (p, show_progress);
-    }
-  catch (const fs::filesystem_error &e)
-    {
-      display::end ();
-      fail ();
-    }
-  return nullptr;
-}
-
 int
 main (const int argc, const char **argv)
 {
@@ -43,7 +28,12 @@ main (const int argc, const char **argv)
 
   display::begin ();
   display::header (path);
-  si = do_process_dir (path);
+  si = process_dir (path, show_progress);
+  if (si == nullptr)
+    {
+      display::end ();
+      fail ();
+    }
   display::space_info (*si);
   display::footer (*si);
   display::refresh ();
@@ -84,7 +74,7 @@ key_down:
                 path.swap (pending_path);
                 display::clear ();
                 display::header (path);
-                si = do_process_dir (path);
+                si = process_dir (path, show_progress);
                 // ToDo: stay in previous directory and inform user about error
                 //       instead of just quitting
                 if (si == nullptr)
