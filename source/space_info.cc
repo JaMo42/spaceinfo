@@ -1,5 +1,7 @@
 #include "space_info.hh"
 
+std::error_code G_error;
+
 void
 SpaceInfo::add (const fs::path &path, u64 size, u64 file_count)
 {
@@ -49,44 +51,64 @@ can_get_size (const fs::file_status &stat)
     }
 }
 
-std::pair<u64, u64>
-directory_size_and_file_count (const fs::path &path)
+template <class It, class UnaryFunction>
+static bool
+safe_directory_iterator (It &&dir_it, UnaryFunction f)
 {
-  u64 size = 0, count = 0;
-  // ToDo: same as in process_dir
-  for (const auto &entry : fs::recursive_directory_iterator (path))
+  const auto end = fs::end (dir_it);
+  for (auto it = fs::begin (dir_it); it != end; it.increment (G_error))
     {
+      if (G_error)
+        return false;
+      f (*it);
+    }
+  return true;
+}
+
+bool
+directory_size_and_file_count (const fs::path &path, u64 &size, u64 &count)
+{
+  size = count = 0;
+  return safe_directory_iterator (
+    fs::recursive_directory_iterator (path),
+    [&](const fs::directory_entry &entry) {
       if (entry.exists () && can_get_size (entry.status ()))
         {
           size += entry.file_size ();
           ++count;
         }
     }
-  return std::make_pair (size, count);
+  );
 }
 
 SpaceInfo *
 process_dir (const fs::path &path, ProcessingCallback callback)
 {
+  u64 size, count;
+
   if (G_dirs.contains (path))
     return &G_dirs[path];
 
   SpaceInfo *const si
-    = &G_dirs.emplace (std::make_pair (path, SpaceInfo {})).first->second;
+    = &G_dirs.emplace (std::make_pair (path, SpaceInfo {path})).first->second;
 
-  // ToDO: Iterate manually so we can catch individual errors and use
-  //       std::error_code
-  for (const auto &entry : fs::directory_iterator (path))
-    {
-      if (entry.is_directory ())
-        {
-          auto [size, count] = directory_size_and_file_count (entry.path ());
-          si->add (entry.path (), size, count);
+  if (!safe_directory_iterator (
+        fs::directory_iterator (path),
+        [&](const fs::directory_entry &entry) {
+          if (entry.is_directory ())
+            {
+              if (!directory_size_and_file_count (entry.path (), size, count))
+                // ToDo: allow SpaceInfo::Item to represent errors
+                si->add (entry.path (), -1, -1);
+              else
+                si->add (entry.path (), size, count);
+            }
+          else if (entry.exists () && can_get_size (entry.status ()))
+            si->add (entry.path (), entry.file_size ());
+          if (callback)
+            callback (*si);
         }
-      else if (entry.exists () && can_get_size (entry.status ()))
-        si->add (entry.path (), entry.file_size ());
-      if (callback)
-        callback (*si);
-    }
+      ))
+    return nullptr;
   return si;
 }

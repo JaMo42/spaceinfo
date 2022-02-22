@@ -11,6 +11,14 @@ show_progress (const SpaceInfo &si)
   display::refresh ();
 }
 
+static void
+fail ()
+{
+  std::fputs (G_error.message ().c_str (), stderr);
+  std::fputc ('\n', stderr);
+  std::exit (1);
+}
+
 static SpaceInfo *
 do_process_dir (const fs::path &p)
 {
@@ -21,9 +29,9 @@ do_process_dir (const fs::path &p)
   catch (const fs::filesystem_error &e)
     {
       display::end ();
-      std::fputs ("Permission denied\n", stderr);
-      std::exit (1);
+      fail ();
     }
+  return nullptr;
 }
 
 int
@@ -77,6 +85,13 @@ key_down:
                 display::clear ();
                 display::header (path);
                 si = do_process_dir (path);
+                // ToDo: stay in previous directory and inform user about error
+                //       instead of just quitting
+                if (si == nullptr)
+                  {
+                    display::end ();
+                    fail ();
+                  }
                 display::footer (*si);
                 display::set_cursor (0);
               }

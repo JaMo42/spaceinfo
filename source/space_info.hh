@@ -56,6 +56,8 @@ using ProcessingCallback = std::function<void (const SpaceInfo &)>;
 
 inline std::map<fs::path, SpaceInfo> G_dirs;
 
+extern std::error_code G_error;
+
 bool can_get_size (const fs::file_status &stat);
 
 std::pair<u64, u64> directory_size_and_file_count (const fs::path &path);
