@@ -44,11 +44,11 @@ public:
 
   f64
   size_relative_to_biggest (const Item &item) const
-  { return static_cast<f64> (item.size) / biggest_; }
+  { return biggest_ ? (static_cast<f64> (item.size) / biggest_) : 1.0; }
 
   f64
   size_relative_to_total (const Item &item) const
-  { return static_cast<f64> (item.size) / total_; }
+  { return total_ ? (static_cast<f64> (item.size) / total_) : 1.0; }
 
 private:
   void insert_sorted (Item &&);
