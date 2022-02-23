@@ -52,6 +52,7 @@ main (const int argc, const char **argv)
             Select::select (search, *si);
           }
         Display::footer (*si);
+        si->sort (sort_ascending = false);
       }
   };
 
