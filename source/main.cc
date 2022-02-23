@@ -139,6 +139,15 @@ key_down:
               pending_path = fs::canonical (path / pending_path);
             maybe_goto_pending ();
             break;
+          case 'R':
+            G_dirs.erase (path);
+            Display::clear ();
+            Display::header (path);
+            si = process_dir (path, show_progress);
+            Display::space_info (*si);
+            Display::footer (*si);
+            sort_ascending = false;
+            break;
         }
       Display::space_info (*si);
       Display::refresh ();
