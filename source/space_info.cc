@@ -2,6 +2,8 @@
 
 std::error_code G_error;
 
+u64 file_system_free;
+
 void
 SpaceInfo::add_parent (const fs::path &parent)
 {
@@ -103,7 +105,10 @@ process_dir (const fs::path &path, ProcessingCallback callback)
   u64 size, count;
 
   if (G_dirs.contains (path))
-    return &G_dirs[path];
+    {
+      file_system_free = fs::space (path).free;
+      return &G_dirs[path];
+    }
 
   SpaceInfo *const si
     = &G_dirs.emplace (std::make_pair (path, SpaceInfo {})).first->second;
@@ -134,5 +139,6 @@ process_dir (const fs::path &path, ProcessingCallback callback)
       G_dirs.erase (path);
       return nullptr;
     }
+  file_system_free = fs::space (path).free;
   return si;
 }

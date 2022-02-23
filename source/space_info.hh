@@ -18,8 +18,6 @@ public:
   using const_iterator = items_type::const_iterator;
 
 public:
-  // ToDo: adding a constructor that does this causes some 10 page compiler
-  //       error?
   void
   add_parent (const fs::path &parent);
 
@@ -65,6 +63,8 @@ using ProcessingCallback = std::function<void (const SpaceInfo &)>;
 inline std::map<fs::path, SpaceInfo> G_dirs;
 
 extern std::error_code G_error;
+
+extern u64 file_system_free;
 
 bool can_get_size (const fs::file_status &stat);
 

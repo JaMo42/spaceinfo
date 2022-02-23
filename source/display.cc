@@ -258,7 +258,9 @@ footer (const SpaceInfo &si)
   fill_line (row);
   mvaddstr (row, 0, "Total disk usage: ");
   print_size (si.total ());
-  printw (", %" PRIu64 " Items", si.item_count ());
+  printw (", %" PRIu64 " Items, ", si.item_count ());
+  print_size (file_system_free);
+  addstr (" Free");
   attroff (A_REVERSE);
 }
 
