@@ -42,6 +42,7 @@ begin ()
 
   init_pair (SELECTION_COLOR, COLOR_BLACK, COLOR_YELLOW);
 
+  // ToDo: sigwinch
   S_bar.assign (getmaxx (stdscr), ' ');
 }
 

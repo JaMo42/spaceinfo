@@ -31,6 +31,29 @@ main (const int argc, const char **argv)
                    : fs::current_path ());
   fs::path pending_path;
   bool sort_ascending = false;
+  std::string_view search = ""sv;
+
+  auto maybe_goto_pending  = [&]() {
+    if (fs::is_directory (pending_path) && pending_path != dev_path)
+      {
+        path.swap (pending_path);
+        Display::clear ();
+        Display::header (path);
+        si = process_dir (path, show_progress);
+        if (si == nullptr)
+          {
+            path.swap (pending_path);
+            Display::header (path);
+            si = process_dir (path);
+          }
+        else
+          {
+            Display::set_cursor (0);
+            Select::select (search, *si);
+          }
+        Display::footer (*si);
+      }
+  };
 
   // The program gets stuck when entering the /dev/ directory (at least on my
   // machine :^) ) so we do not permit entering it.
@@ -55,8 +78,6 @@ main (const int argc, const char **argv)
   Display::space_info (*si);
   Display::footer (*si);
   Display::refresh ();
-
-  std::string_view search = ""sv;
 
   int ch;
   while ((ch = getch ()) != 'q')
@@ -90,25 +111,7 @@ key_down:
           case 10: // Enter
           case ' ':
             pending_path = Display::select (*si, path);
-            if (fs::is_directory (pending_path) && pending_path != dev_path)
-              {
-                path.swap (pending_path);
-                Display::clear ();
-                Display::header (path);
-                si = process_dir (path, show_progress);
-                if (si == nullptr)
-                  {
-                    path.swap (pending_path);
-                    Display::header (path);
-                    si = process_dir (path);
-                  }
-                else
-                  {
-                    Display::set_cursor (0);
-                    Select::select (search, *si);
-                  }
-                Display::footer (*si);
-              }
+            maybe_goto_pending ();
             break;
           case 'r':
           case 'i':
@@ -126,8 +129,14 @@ key_down:
           case 'N':
             Select::prev ();
             break;
-          case 'c':  // ToDo: probably use a differeny key/way to clear
+          case 'c':
             Select::clear_selection ();
+            break;
+          case 'h':
+            pending_path = Display::input ("Go to");
+            if (!pending_path.is_absolute ())
+              pending_path = fs::canonical (path / pending_path);
+            maybe_goto_pending ();
             break;
         }
       Display::space_info (*si);
