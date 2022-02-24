@@ -30,7 +30,7 @@ help ()
     "G    Move cursor to the bottom"sv,
     "Enter/Space"sv,
     "     Enter the directory under the cursor"sv,
-    "r/i  Reverse sroting order"sv,
+    "r/i  Reverse sorting order"sv,
     "'/'  Begin search"sv,
     "n    Select the next search result"sv,
     "N    Select the previous search result"sv,
@@ -56,7 +56,7 @@ help ()
 
   auto put_lines = [&win](usize begin, usize end) {
     for (int line = 1; begin != end; ++begin, ++line)
-    mvwaddstr (win, line, 1, text[begin].data ());
+      mvwaddstr (win, line, 1, text[begin].data ());
   };
 
   box (win, 0, 0);
@@ -90,6 +90,12 @@ help_key_up:
 help_key_down:
             if (pos < max_pos)
               ++pos;
+            break;
+          case 'g':
+            pos = 0;
+            break;
+          case 'G':
+            pos = max_pos;
             break;
           case 'q':
             stop = true;
