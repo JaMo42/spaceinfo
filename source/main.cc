@@ -33,7 +33,7 @@ main (const int argc, const char **argv)
   bool sort_ascending = false;
   std::string_view search = ""sv;
 
-  auto maybe_goto_pending  = [&]() {
+  auto maybe_goto_pending = [&]() {
     if (fs::is_directory (pending_path) && pending_path != dev_path)
       {
         path.swap (pending_path);
@@ -56,10 +56,9 @@ main (const int argc, const char **argv)
       }
   };
 
-  // The program gets stuck when entering the /dev/ directory (at least on my
-  // machine :^) ) so we do not permit entering it.
-  // It also reports a bogus size when showing the root directory (in my case
-  // 128 TB) so we display 'Not supported' instead of the size.
+  // The program gets stuck when entering the /dev/ directory so we do not
+  // permit entering it. It also reports a bogus size when showing the root
+  // directory so we display 'Not supported' instead of the size.
   if (path == dev_path)
     {
       std::fputs ("The /dev directory is not supported.\n", stderr);
@@ -136,8 +135,11 @@ key_down:
           case 'h':
             pending_path = Display::input ("Go to");
             if (!pending_path.is_absolute ())
-              pending_path = fs::canonical (path / pending_path);
-            maybe_goto_pending ();
+              pending_path = fs::canonical (path / pending_path, G_error);
+            if (!G_error)
+              maybe_goto_pending ();
+            else
+              Display::footer (*si);
             break;
           case 'R':
             G_dirs.erase (path);
