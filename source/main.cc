@@ -21,7 +21,7 @@ fail ()
   std::exit (1);
 }
 
-static bool
+static int
 help ()
 {
   static constexpr std::array text = {
@@ -68,7 +68,7 @@ help ()
     {
       ch = getch ();
       delwin (win);
-      return ch == 'q';
+      return ch;
     }
 
   const int max_pos = text.size () - content_height;
@@ -118,7 +118,7 @@ help_key_down:
       wrefresh (win);
     }
   delwin (win);
-  return ch == 'q';
+  return ch;
 }
 
 int
@@ -189,6 +189,7 @@ main (const int argc, const char **argv)
   int ch;
   while ((ch = getch ()) != 'q')
     {
+main_loop_repeat:
       switch (ch)
         {
           case KEY_UP:
@@ -259,13 +260,14 @@ key_down:
             sort_ascending = false;
             break;
           case '?':
-            if (help ())
-              goto break_main_loop;
+            ch = help ();
             Display::clear ();
             Display::set_path (path);
             Display::header ();
+            Display::space_info ();
             Display::footer ();
-            break;
+            Display::refresh ();
+            goto main_loop_repeat;
           case KEY_RESIZE:
             Display::refresh_size ();
             Display::clear ();
@@ -276,6 +278,5 @@ key_down:
       Display::space_info ();
       Display::refresh ();
     }
-break_main_loop:
   Display::end ();
 }
