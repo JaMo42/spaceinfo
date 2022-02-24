@@ -252,7 +252,6 @@ key_down:
           case 'R':
             G_dirs.erase (path);
             Display::clear ();
-            Display::set_path (path);
             Display::header ();
             si = process_dir (path, show_progress);
             Display::space_info ();
@@ -262,7 +261,6 @@ key_down:
           case '?':
             ch = help ();
             Display::clear ();
-            Display::set_path (path);
             Display::header ();
             Display::space_info ();
             Display::footer ();
