@@ -20,7 +20,7 @@ fail ()
   std::exit (1);
 }
 
-static void
+static bool
 help ()
 {
   static constexpr std::array text = {
@@ -39,28 +39,80 @@ help ()
     "R    Reload the current directory"sv
   };
   static constexpr usize text_width = []() consteval -> usize {
-    return std::max_element (std::begin (text), std::end (text),
-                             [](const std::string_view &a,
-                                const std::string_view &b) {
-                               return a.size () < b.size ();
-                             })->size ();
+    return std::max_element (
+      std::begin (text), std::end (text),
+      [](const std::string_view &a, const std::string_view &b) {
+        return a.size () < b.size ();
+      }
+    )->size ();
   } ();
   const int width = getmaxx (stdscr);
   const int height = getmaxy (stdscr);
+  const int content_height = std::min (static_cast<int> (text.size ()),
+                                       height - 6);
   const int x = (width - text_width) / 2;
-  const int y = (height - text.size ()) / 2;
+  const int y = (height - content_height - 2) / 2;
+  WINDOW *win = newwin (content_height + 2, text_width + 2, y, x);
 
-  WINDOW *win = newwin (text.size () + 2, text_width + 2, y, x);
+  auto put_lines = [&win](usize begin, usize end) {
+    for (int line = 1; begin != end; ++begin, ++line)
+    mvwaddstr (win, line, 1, text[begin].data ());
+  };
+
   box (win, 0, 0);
-  int line_pos = 1;
-  for (const std::string_view line : text)
-    {
-      wmove (win, line_pos, 1);
-      waddstr (win, line.data ());
-      ++line_pos;
-    }
+  put_lines (0, content_height);
   wrefresh (win);
+
+  int ch;
+  if (static_cast<usize> (content_height) == text.size ())
+    {
+      ch = getch ();
+      delwin (win);
+      return ch == 'q';
+    }
+
+  const int max_pos = text.size () - content_height;
+  bool stop = false;
+  int pos = 0;
+  while (!stop)
+    {
+      ch = getch ();
+      switch (ch)
+        {
+          case KEY_UP:
+          case 'k':
+help_key_up:
+            if (pos > 0)
+              --pos;
+            break;
+          case KEY_DOWN:
+          case 'j':
+help_key_down:
+            if (pos < max_pos)
+              ++pos;
+            break;
+          case 'q':
+            stop = true;
+            break;
+          case 27:
+            (void)getch ();
+            ch = getch ();
+            if (ch == 'A')
+              goto help_key_up;
+            else if (ch == 'B')
+              goto help_key_down;
+            [[fallthrough]];
+          default:
+            stop = true;
+            break;
+        }
+      wclear (win);
+      box (win, 0, 0);
+      put_lines (pos, pos + content_height);
+      wrefresh (win);
+    }
   delwin (win);
+  return ch == 'q';
 }
 
 int
@@ -194,8 +246,8 @@ key_down:
             sort_ascending = false;
             break;
           case '?':
-            help ();
-            getch ();
+            if (help ())
+              goto break_main_loop;
             Display::clear ();
             Display::header (path);
             Display::footer (*si);
@@ -204,5 +256,6 @@ key_down:
       Display::space_info (*si);
       Display::refresh ();
     }
+break_main_loop:
   Display::end ();
 }
