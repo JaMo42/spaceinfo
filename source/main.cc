@@ -156,6 +156,7 @@ main (const int argc, const char **argv)
             Display::set_cursor (0);
             Select::select (search, *si);
           }
+        Display::set_space_info (si);
         Display::footer ();
         si->sort (sort_ascending = false);
       }
