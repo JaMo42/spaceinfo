@@ -8,6 +8,9 @@ constexpr int SELECTION_COLOR = 10;
 static std::string S_bar;
 static usize S_cursor;
 
+static const SpaceInfo *S_si;
+static fs::path S_current_path;
+
 namespace Display
 {
 
@@ -67,16 +70,28 @@ clear ()
 }
 
 void
-header (const fs::path &path)
+set_space_info (const SpaceInfo *si)
+{
+  S_si = si;
+}
+
+void
+set_path (const fs::path &path)
+{
+  S_current_path = path;
+}
+
+void
+header ()
 {
   attron (A_REVERSE);
   fill_line (0);
   mvaddstr (0, 0, "Space info for ");
   attron (A_BOLD);
   if constexpr (std::is_same_v<fs::path::value_type, char>)
-    addstr (path.c_str ());
+    addstr (S_current_path.c_str ());
   else
-    addstr (path.generic_string ().c_str ());
+    addstr (S_current_path.generic_string ().c_str ());
   attroff (A_BOLD);
   attroff (A_REVERSE);
 }
@@ -219,12 +234,12 @@ print_items (const SpaceInfo &si, usize from, usize to, int size_width,
 }
 
 void
-space_info (const SpaceInfo &si, bool show_cursor)
+space_info (bool show_cursor)
 {
   const usize rows = static_cast<usize> (getmaxy (stdscr) - 3);
   const usize rows_2 = static_cast<usize> (rows / 2);
-  const usize item_count = si.item_count ();
-  const int size_width = size_column_width (si);
+  const usize item_count = S_si->item_count ();
+  const int size_width = size_column_width (*S_si);
   int first, last;
 
   if (item_count <= rows)
@@ -248,19 +263,19 @@ space_info (const SpaceInfo &si, bool show_cursor)
       last = S_cursor + (rows - rows_2);
     }
 
-  print_items (si, first, last, size_width, show_cursor);
+  print_items (*S_si, first, last, size_width, show_cursor);
 }
 
 void
-footer (const SpaceInfo &si)
+footer ()
 {
   constexpr const char help_info[] = "Press ? for help";
   const int row = getmaxy (stdscr) - 1;
   attron (A_REVERSE);
   fill_line (row);
   mvaddstr (row, 0, "Total disk usage: ");
-  print_size (si.total ());
-  printw (", %" PRIu64 " Items, ", si.item_count ());
+  print_size (S_si->total ());
+  printw (", %" PRIu64 " Items, ", S_si->item_count ());
   print_size (file_system_free);
   addstr (" Free");
   move (row, getmaxx (stdscr) - sizeof (help_info));

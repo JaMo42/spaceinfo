@@ -9,9 +9,12 @@ void end ();
 void refresh ();
 void clear ();
 
-void header (const fs::path &path);
-void space_info (const SpaceInfo &si, bool show_cursor = true);
-void footer (const SpaceInfo &si);
+void set_space_info (const SpaceInfo *);
+void set_path (const fs::path &path);
+
+void header ();
+void space_info (bool show_cursor = true);
+void footer ();
 
 void move_cursor (ssize by, usize end);
 void set_cursor (usize to);

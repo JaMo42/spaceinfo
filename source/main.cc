@@ -7,8 +7,9 @@
 static void
 show_progress (const SpaceInfo &si)
 {
-  Display::space_info (si, false);
-  Display::footer (si);
+  Display::set_space_info (&si);
+  Display::space_info (false);
+  Display::footer ();
   Display::refresh ();
 }
 
@@ -139,20 +140,24 @@ main (const int argc, const char **argv)
       {
         path.swap (pending_path);
         Display::clear ();
-        Display::header (path);
+        Display::set_path (path);
+        Display::header ();
         si = process_dir (path, show_progress);
         if (si == nullptr)
           {
             path.swap (pending_path);
-            Display::header (path);
+            Display::set_path (path);
+            Display::header ();
             si = process_dir (path);
+            Display::set_space_info (si);
           }
         else
           {
+            // Display::set_space_info (si) already happened in show_progress
             Display::set_cursor (0);
             Select::select (search, *si);
           }
-        Display::footer (*si);
+        Display::footer ();
         si->sort (sort_ascending = false);
       }
   };
@@ -169,15 +174,16 @@ main (const int argc, const char **argv)
   Select::clear_selection ();
 
   Display::begin ();
-  Display::header (path);
+  Display::set_path (path);
+  Display::header ();
   si = process_dir (path, show_progress);
   if (si == nullptr)
     {
       Display::end ();
       fail ();
     }
-  Display::space_info (*si);
-  Display::footer (*si);
+  Display::space_info ();
+  Display::footer ();
   Display::refresh ();
 
   int ch;
@@ -221,7 +227,7 @@ key_down:
             break;
           case '/':
             search = Display::input ("Search");
-            Display::footer (*si);
+            Display::footer ();
             Select::select (search, *si);
             break;
           case 'n':
@@ -240,26 +246,28 @@ key_down:
             if (!G_error)
               maybe_goto_pending ();
             else
-              Display::footer (*si);
+              Display::footer ();
             break;
           case 'R':
             G_dirs.erase (path);
             Display::clear ();
-            Display::header (path);
+            Display::set_path (path);
+            Display::header ();
             si = process_dir (path, show_progress);
-            Display::space_info (*si);
-            Display::footer (*si);
+            Display::space_info ();
+            Display::footer ();
             sort_ascending = false;
             break;
           case '?':
             if (help ())
               goto break_main_loop;
             Display::clear ();
-            Display::header (path);
-            Display::footer (*si);
+            Display::set_path (path);
+            Display::header ();
+            Display::footer ();
             break;
         }
-      Display::space_info (*si);
+      Display::space_info ();
       Display::refresh ();
     }
 break_main_loop:
