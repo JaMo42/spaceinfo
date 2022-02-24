@@ -11,6 +11,9 @@ static usize S_cursor;
 static const SpaceInfo *S_si;
 static fs::path S_current_path;
 
+static int S_display_width;
+static int S_display_height;
+
 namespace Display
 {
 
@@ -46,14 +49,39 @@ begin ()
 
   init_pair (SELECTION_COLOR, COLOR_BLACK, COLOR_YELLOW);
 
-  // ToDo: sigwinch
-  S_bar.assign (getmaxx (stdscr), ' ');
+  refresh_size ();
+  S_bar.assign (S_display_width, ' ');
 }
 
 void
 end ()
 {
   endwin ();
+}
+
+int
+width ()
+{
+  return S_display_width;
+}
+
+void
+refresh_size ()
+{
+  getmaxyx (stdscr, S_display_height, S_display_width);
+  S_bar.assign (S_display_width, ' ');
+}
+
+int
+height ()
+{
+  return S_display_height;
+}
+
+std::pair<int, int>
+size ()
+{
+  return std::make_pair (S_display_width, S_display_height);
 }
 
 void
@@ -236,7 +264,7 @@ print_items (const SpaceInfo &si, usize from, usize to, int size_width,
 void
 space_info (bool show_cursor)
 {
-  const usize rows = static_cast<usize> (getmaxy (stdscr) - 3);
+  const usize rows = static_cast<usize> (S_display_height - 3);
   const usize rows_2 = static_cast<usize> (rows / 2);
   const usize item_count = S_si->item_count ();
   const int size_width = size_column_width (*S_si);
@@ -270,7 +298,7 @@ void
 footer ()
 {
   constexpr const char help_info[] = "Press ? for help";
-  const int row = getmaxy (stdscr) - 1;
+  const int row = S_display_height - 1;
   attron (A_REVERSE);
   fill_line (row);
   mvaddstr (row, 0, "Total disk usage: ");
@@ -278,7 +306,7 @@ footer ()
   printw (", %" PRIu64 " Items, ", S_si->item_count ());
   print_size (file_system_free);
   addstr (" Free");
-  move (row, getmaxx (stdscr) - sizeof (help_info));
+  move (row, S_display_width - sizeof (help_info));
   addstr (help_info);
   attroff (A_REVERSE);
 }
@@ -313,7 +341,7 @@ input (std::string_view purpose)
 {
   static const int S_buf_size = 80;
   static char S_buf[S_buf_size];
-  const int row = getmaxy (stdscr) - 1;
+  const int row = S_display_height - 1;
   attron (A_REVERSE);
   fill_line (row);
   move (row, 0);

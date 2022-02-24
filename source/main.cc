@@ -47,8 +47,7 @@ help ()
       }
     )->size ();
   } ();
-  const int width = getmaxx (stdscr);
-  const int height = getmaxy (stdscr);
+  const auto [width, height] = Display::size ();
   const int content_height = std::min (static_cast<int> (text.size ()),
                                        height - 6);
   const int x = (width - text_width) / 2;
@@ -263,6 +262,12 @@ key_down:
               goto break_main_loop;
             Display::clear ();
             Display::set_path (path);
+            Display::header ();
+            Display::footer ();
+            break;
+          case KEY_RESIZE:
+            Display::refresh_size ();
+            Display::clear ();
             Display::header ();
             Display::footer ();
             break;

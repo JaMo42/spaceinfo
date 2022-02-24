@@ -6,6 +6,12 @@ namespace Display
 {
 void begin ();
 void end ();
+
+void refresh_size ();
+int width ();
+int height ();
+std::pair<int/*width*/, int/*height*/> size ();
+
 void refresh ();
 void clear ();
 
