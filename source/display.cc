@@ -13,6 +13,7 @@ static fs::path S_current_path;
 
 static int S_display_width;
 static int S_display_height;
+static int S_page_move_amount;
 
 namespace Display
 {
@@ -70,6 +71,7 @@ refresh_size ()
 {
   getmaxyx (stdscr, S_display_height, S_display_width);
   S_bar.assign (S_display_width, ' ');
+  S_page_move_amount = std::max (5, (S_display_height - 3) / 2);
 }
 
 int
@@ -82,6 +84,12 @@ std::pair<int, int>
 size ()
 {
   return std::make_pair (S_display_width, S_display_height);
+}
+
+int
+page_move_amount ()
+{
+  return S_page_move_amount;
 }
 
 void
@@ -312,13 +320,14 @@ footer ()
 }
 
 void
-move_cursor (ssize by, usize end)
+move_cursor (ssize by)
 {
-  if (S_cursor == 0 && by < 0)
-    return;
-  if (S_cursor + by >= end)
-    return;
-  S_cursor += by;
+  if (by < 0 && static_cast<usize> (-by) > S_cursor)
+    S_cursor = 0;
+  else if (S_cursor + by >= S_si->item_count () + 1)
+    S_cursor = S_si->item_count ();
+  else
+    S_cursor += by;
 }
 
 void

@@ -11,6 +11,7 @@ void refresh_size ();
 int width ();
 int height ();
 std::pair<int/*width*/, int/*height*/> size ();
+int page_move_amount ();
 
 void refresh ();
 void clear ();
@@ -22,7 +23,7 @@ void header ();
 void space_info (bool show_cursor = true);
 void footer ();
 
-void move_cursor (ssize by, usize end);
+void move_cursor (ssize by);
 void set_cursor (usize to);
 fs::path select (const SpaceInfo &from, const fs::path &current);
 

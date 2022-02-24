@@ -22,22 +22,54 @@ fail ()
 }
 
 static int
+my_getch ()
+{
+  int ch = getch ();
+  if (ch == 27)
+    {
+      (void)getch ();
+      switch (ch = getch ())
+        {
+          case 'A':  // ^[[A
+            return KEY_UP;
+          case 'B':  // ^[[B
+            return KEY_DOWN;
+          case 'H':  // ^[[H
+            return KEY_HOME;
+          case 'F':  // ^[[F
+            return KEY_END;
+          case '5':  // ^[[5~
+            (void)getch ();
+            return KEY_PPAGE;
+          case '6':  // ^[[6~
+            (void)getch ();
+            return KEY_NPAGE;
+          default:
+            return 0;
+        }
+    }
+  return ch;
+}
+
+static int
 help ()
 {
   static constexpr std::array text = {
-    "k/↑  Move cursor up"sv,
-    "j/↓  Move cursor down"sv,
-    "g    Move cursor to the start"sv,
-    "G    Move cursor to the bottom"sv,
+    "k/↑     Move cursor up"sv,
+    "j/↓     Move cursor down"sv,
+    "K/PgUp  Move cursor up multiple items"sv,
+    "J/PgDn  Move cursor down multiple items"sv,
+    "g/Home  Move cursor to the start"sv,
+    "G/End   Move cursor to the bottom"sv,
     "Enter/Space"sv,
-    "     Enter the directory under the cursor"sv,
-    "r/i  Reverse sorting order"sv,
-    "'/'  Begin search"sv,
-    "n    Select the next search result"sv,
-    "N    Select the previous search result"sv,
-    "c    Clear search"sv,
-    "h    Go to a specific path"sv,
-    "R    Reload the current directory"sv
+    "        Enter the directory under the cursor"sv,
+    "r/i     Reverse sorting order"sv,
+    "'/'     Begin search"sv,
+    "n       Select the next search result"sv,
+    "N       Select the previous search result"sv,
+    "c       Clear search"sv,
+    "h       Go to a specific path"sv,
+    "R       Reload the current directory"sv
   };
   static constexpr usize text_width = []() consteval -> usize {
     return std::max_element (
@@ -66,48 +98,52 @@ help ()
   int ch;
   if (static_cast<usize> (content_height) == text.size ())
     {
-      ch = getch ();
+      ch = my_getch ();
       delwin (win);
       return ch;
     }
 
   const int max_pos = text.size () - content_height;
+  const int page_move_amount = std::max (5, (content_height - 1) / 2);
   bool stop = false;
   int pos = 0;
   while (!stop)
     {
-      ch = getch ();
-      switch (ch)
+      switch (ch = my_getch ())
         {
           case KEY_UP:
           case 'k':
-help_key_up:
             if (pos > 0)
               --pos;
             break;
           case KEY_DOWN:
           case 'j':
-help_key_down:
             if (pos < max_pos)
               ++pos;
             break;
+          case KEY_PPAGE:
+          case 'K':
+            if (pos < page_move_amount)
+              pos = 0;
+            else
+              pos -= page_move_amount;
+            break;
+          case KEY_NPAGE:
+          case 'J':
+            if (pos + page_move_amount > max_pos)
+              pos = max_pos;
+            else
+              pos += page_move_amount;
+            break;
+          case KEY_HOME:
           case 'g':
             pos = 0;
             break;
+          case KEY_END:
           case 'G':
             pos = max_pos;
             break;
-          case 'q':
-            stop = true;
-            break;
-          case 27:
-            (void)getch ();
-            ch = getch ();
-            if (ch == 'A')
-              goto help_key_up;
-            else if (ch == 'B')
-              goto help_key_down;
-            [[fallthrough]];
+          case 0:  // unhandeled escape in my_getch
           default:
             stop = true;
             break;
@@ -187,34 +223,36 @@ main (const int argc, const char **argv)
   Display::refresh ();
 
   int ch;
-  while ((ch = getch ()) != 'q')
+  bool stop = false;
+  while (!stop)
     {
+      ch = my_getch ();
 main_loop_repeat:
       switch (ch)
         {
           case KEY_UP:
           case 'k':
-key_up:
-            Display::move_cursor (-1, si->item_count () + 1);
+            Display::move_cursor (-1);
             break;
           case KEY_DOWN:
           case 'j':
-key_down:
-            Display::move_cursor (1, si->item_count () + 1);
+            Display::move_cursor (1);
             break;
-          case 27:
-            (void)getch ();
-            ch = getch ();
-            if (ch == 'A')
-              goto key_up;
-            else if (ch == 'B')
-              goto key_down;
-            break;
+          case KEY_HOME:
           case 'g':
             Display::set_cursor (0);
             break;
+          case KEY_END:
           case 'G':
             Display::set_cursor (si->item_count ());
+            break;
+          case KEY_PPAGE:
+          case 'K':
+            Display::move_cursor (-Display::page_move_amount ());
+            break;
+          case KEY_NPAGE:
+          case 'J':
+            Display::move_cursor (Display::page_move_amount ());
             break;
           case 10: // Enter
           case ' ':
@@ -266,6 +304,9 @@ key_down:
             Display::footer ();
             Display::refresh ();
             goto main_loop_repeat;
+          case 'q':
+            stop = true;
+            break;
           case KEY_RESIZE:
             Display::refresh_size ();
             Display::clear ();
