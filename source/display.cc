@@ -32,7 +32,7 @@ bar (f64 fullness, int length, char fill='#', char empty=' ')
 void
 begin ()
 {
-  setlocale (LC_ALL, "");
+  setlocale (LC_CTYPE, "");
   initscr ();
   curs_set (0);
   noecho ();
