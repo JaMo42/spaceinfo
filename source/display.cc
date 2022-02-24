@@ -32,6 +32,7 @@ bar (f64 fullness, int length, char fill='#', char empty=' ')
 void
 begin ()
 {
+  setlocale (LC_ALL, "");
   initscr ();
   curs_set (0);
   noecho ();
@@ -253,6 +254,7 @@ space_info (const SpaceInfo &si, bool show_cursor)
 void
 footer (const SpaceInfo &si)
 {
+  constexpr const char help_info[] = "Press ? for help";
   const int row = getmaxy (stdscr) - 1;
   attron (A_REVERSE);
   fill_line (row);
@@ -261,6 +263,8 @@ footer (const SpaceInfo &si)
   printw (", %" PRIu64 " Items, ", si.item_count ());
   print_size (file_system_free);
   addstr (" Free");
+  move (row, getmaxx (stdscr) - sizeof (help_info));
+  addstr (help_info);
   attroff (A_REVERSE);
 }
 

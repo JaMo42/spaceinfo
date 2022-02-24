@@ -20,6 +20,49 @@ fail ()
   std::exit (1);
 }
 
+static void
+help ()
+{
+  static constexpr std::array text = {
+    "k/↑  Move cursor up"sv,
+    "j/↓  Move cursor down"sv,
+    "g    Move cursor to the start"sv,
+    "G    Move cursor to the bottom"sv,
+    "Enter/Space"sv,
+    "     Enter the directory under the cursor"sv,
+    "r/i  Reverse sroting order"sv,
+    "'/'  Begin search"sv,
+    "n    Select the next search result"sv,
+    "N    Select the previous search result"sv,
+    "c    Clear search"sv,
+    "h    Go to a specific path"sv,
+    "R    Reload the current directory"sv
+  };
+  static constexpr usize text_width = []() consteval -> usize {
+    return std::max_element (std::begin (text), std::end (text),
+                             [](const std::string_view &a,
+                                const std::string_view &b) {
+                               return a.size () < b.size ();
+                             })->size ();
+  } ();
+  const int width = getmaxx (stdscr);
+  const int height = getmaxy (stdscr);
+  const int x = (width - text_width) / 2;
+  const int y = (height - text.size ()) / 2;
+
+  WINDOW *win = newwin (text.size () + 2, text_width + 2, y, x);
+  box (win, 0, 0);
+  int line_pos = 1;
+  for (const std::string_view line : text)
+    {
+      wmove (win, line_pos, 1);
+      waddstr (win, line.data ());
+      ++line_pos;
+    }
+  wrefresh (win);
+  delwin (win);
+}
+
 int
 main (const int argc, const char **argv)
 {
@@ -149,6 +192,13 @@ key_down:
             Display::space_info (*si);
             Display::footer (*si);
             sort_ascending = false;
+            break;
+          case '?':
+            help ();
+            getch ();
+            Display::clear ();
+            Display::header (path);
+            Display::footer (*si);
             break;
         }
       Display::space_info (*si);
