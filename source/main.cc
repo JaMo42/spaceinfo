@@ -280,6 +280,11 @@ main_loop_repeat:
             break;
           case 'h':
             pending_path = Display::input ("Go to");
+            if (pending_path.empty ())
+              {
+                Display::footer ();
+                break;
+              }
             if (!pending_path.is_absolute ())
               pending_path = fs::canonical (path / pending_path, G_error);
             if (!G_error)
