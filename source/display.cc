@@ -102,7 +102,6 @@ void
 clear ()
 {
   ::clear ();
-  ::refresh ();
 }
 
 void
