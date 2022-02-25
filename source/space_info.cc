@@ -7,16 +7,16 @@ u64 file_system_free;
 void
 SpaceInfo::add_parent (const fs::path &parent)
 {
-  items_.emplace_back (parent, 0, nullptr, "..");
+  items_.emplace_back (parent, 0, true, nullptr, "..");
 }
 
 void
 SpaceInfo::add (const fs::path &full_path, u64 size, u64 file_count,
-                const char *error)
+                bool is_directory, const char *error)
 {
   const fs::path path = full_path.filename ();
   file_count_ += file_count;
-  insert_sorted (Item { path, size, error });
+  insert_sorted (Item { path, size, is_directory, error });
   total_ += size;
   if (size > biggest_)
     biggest_ = size;
@@ -135,14 +135,14 @@ process_dir (const fs::path &path, ProcessingCallback callback)
         [&](const fs::directory_entry &entry) {
           // See comment in the main function for why this is not supported
           if (entry.path () == dev_path)
-            si->add (entry.path (), 0, 0, "Not supported");
+            si->add (entry.path (), 0, 0, true, "Not supported");
           else if (entry.is_directory ())
             {
               if (!directory_size_and_file_count (entry.path (), size, count))
                 // ToDo: get the actual error message
-                si->add (entry.path (), 0, 1, "Permission denied");
+                si->add (entry.path (), 0, 1, true, "Permission denied");
               else
-                si->add (entry.path (), size, count);
+                si->add (entry.path (), size, count, true);
             }
           else if (entry.exists () && can_get_size (entry.status ()))
             si->add (entry.path (), file_size (entry));

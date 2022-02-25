@@ -250,6 +250,8 @@ print_item (const SpaceInfo &si, usize idx, int row, int size_width,
         addstr (item.path.c_str ());
       else
         addstr (item.path.generic_string ().c_str ());
+      if (item.is_directory)
+        addch ('/' | (A_DIM * !highlight));
     }
   if (highlight)
     attroff (A_REVERSE);

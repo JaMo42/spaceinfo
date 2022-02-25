@@ -6,7 +6,8 @@ class SpaceInfo
   struct Item
   {
     fs::path path;
-    u64 size;
+    u64 size : 63;
+    bool is_directory : 1;
     const char *error = nullptr;
     const char *display_name = nullptr;
   };
@@ -23,7 +24,7 @@ public:
 
   void
   add (const fs::path &path, u64 size, u64 file_count = 1,
-       const char *error = nullptr);
+       bool is_directory = false, const char *error = nullptr);
 
   void
   sort (bool ascending = false);
