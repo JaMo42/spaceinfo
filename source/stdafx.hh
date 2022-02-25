@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cinttypes>
 #include <cstring>
+#include <cerrno>
 
 #include <string>
 #include <vector>
@@ -13,6 +14,9 @@
 
 #include <filesystem>
 #include <system_error>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ncurses.h>
 

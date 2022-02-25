@@ -13,7 +13,7 @@ show_progress (const SpaceInfo &si)
   Display::refresh ();
 }
 
-static void
+void
 fail ()
 {
   std::fputs (G_error.message ().c_str (), stderr);

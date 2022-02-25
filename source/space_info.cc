@@ -82,6 +82,22 @@ safe_directory_iterator (const fs::path &path, UnaryFunction f)
   return true;
 }
 
+u64
+file_size (const fs::directory_entry &entry)
+{
+  struct stat sb;
+  if (::lstat (entry.path ().c_str (), &sb) == -1)
+    {
+      // Hacky but this *should* never fail since we already handeled
+      // permission errors and checked that we can get the size
+      extern void fail ();
+      G_error = std::error_code (errno, std::system_category ());
+      fail ();
+      return 0;
+    }
+  return sb.st_size;
+}
+
 bool
 directory_size_and_file_count (const fs::path &path, u64 &size, u64 &count)
 {
@@ -91,7 +107,7 @@ directory_size_and_file_count (const fs::path &path, u64 &size, u64 &count)
     [&](const fs::directory_entry &entry) {
       if (entry.exists () && can_get_size (entry.status ()))
         {
-          size += entry.file_size ();
+          size += file_size (entry);
           ++count;
         }
     }
@@ -129,8 +145,7 @@ process_dir (const fs::path &path, ProcessingCallback callback)
                 si->add (entry.path (), size, count);
             }
           else if (entry.exists () && can_get_size (entry.status ()))
-            // ToDo: do not follow links when getting file size
-            si->add (entry.path (), entry.file_size ());
+            si->add (entry.path (), file_size (entry));
           if (callback)
             callback (*si);
         }
