@@ -1,7 +1,13 @@
 CXX=g++
-CXXFLAGS=-std=c++20 -Wall -Wextra -pedantic -O0 -g
+CXXFLAGS=-std=c++20 -Wall -Wextra -pedantic
 LDFLAGS=-lncurses
 VGFLAGS=--track-origins=yes
+
+ifeq ($(DEBUG),1)
+	CXXFLAGS += -O0 -g
+else
+	CXXFLAGS += -O3 -march=native -mtune=native
+endif
 
 all: spaceinfo
 
