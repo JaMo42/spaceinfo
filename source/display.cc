@@ -218,10 +218,10 @@ size_column_width (const SpaceInfo &si)
 
 static void
 print_item (const SpaceInfo &si, usize idx, int row, int size_width,
-            bool highlight)
+            bool highlight, bool do_highlight)
 {
   const SpaceInfo::value_type &item = si[idx];
-  const bool is_selected = Select::is_selected (idx);
+  const bool is_selected = do_highlight ? Select::is_selected (idx) : false;
   if (highlight)
     attron (A_REVERSE);
   else if (is_selected)
@@ -266,7 +266,7 @@ print_items (const SpaceInfo &si, usize from, usize to, int size_width,
   usize row = 1;
   for (usize i = from; i <= to; ++i, ++row)
     {
-      print_item (si, i, row, size_width, cursor && (i == S_cursor));
+      print_item (si, i, row, size_width, cursor && (i == S_cursor), cursor);
     }
 }
 
@@ -321,6 +321,20 @@ footer ()
 }
 
 void
+format_footer (const char *fmt, ...)
+{
+  va_list ap;
+  attron (A_REVERSE);
+  const int row = S_display_height - 1;
+  fill_line (row);
+  move (row, 0);
+  va_start (ap, fmt);
+  vw_printw (stdscr, fmt, ap);
+  va_end (ap);
+  attroff (A_REVERSE);
+}
+
+void
 move_cursor (ssize by)
 {
   if (by < 0 && static_cast<usize> (-by) > S_cursor)
@@ -344,25 +358,6 @@ select (const SpaceInfo &from, const fs::path &current)
   if (p.is_absolute ())
     return p;
   return current / p;
-}
-
-std::string_view
-input (std::string_view purpose)
-{
-  static const int S_buf_size = 80;
-  static char S_buf[S_buf_size];
-  const int row = S_display_height - 1;
-  attron (A_REVERSE);
-  fill_line (row);
-  move (row, 0);
-  printw ("%s: ", purpose.data ());
-  curs_set (1);
-  echo ();
-  getnstr (S_buf, S_buf_size);
-  curs_set (0);
-  noecho ();
-  attroff (A_REVERSE);
-  return S_buf;
 }
 
 }

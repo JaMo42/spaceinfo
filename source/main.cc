@@ -3,6 +3,7 @@
 #include "space_info.hh"
 #include "display.hh"
 #include "select.hh"
+#include "input.hh"
 
 static void
 show_progress (const SpaceInfo &si)
@@ -19,36 +20,6 @@ fail ()
   std::fputs (G_error.message ().c_str (), stderr);
   std::fputc ('\n', stderr);
   std::exit (1);
-}
-
-static int
-my_getch ()
-{
-  int ch = getch ();
-  if (ch == 27)
-    {
-      (void)getch ();
-      switch (ch = getch ())
-        {
-          case 'A':  // ^[[A
-            return KEY_UP;
-          case 'B':  // ^[[B
-            return KEY_DOWN;
-          case 'H':  // ^[[H
-            return KEY_HOME;
-          case 'F':  // ^[[F
-            return KEY_END;
-          case '5':  // ^[[5~
-            (void)getch ();
-            return KEY_PPAGE;
-          case '6':  // ^[[6~
-            (void)getch ();
-            return KEY_NPAGE;
-          default:
-            return 0;
-        }
-    }
-  return ch;
 }
 
 static int
@@ -98,7 +69,7 @@ help ()
   int ch;
   if (static_cast<usize> (content_height) == text.size ())
     {
-      ch = my_getch ();
+      ch = Input::get_char ();
       delwin (win);
       return ch;
     }
@@ -109,7 +80,7 @@ help ()
   int pos = 0;
   while (!stop)
     {
-      switch (ch = my_getch ())
+      switch (ch = Input::get_char ())
         {
           case KEY_UP:
           case 'k':
@@ -143,7 +114,7 @@ help ()
           case 'G':
             pos = max_pos;
             break;
-          case 0:  // unhandeled escape in my_getch
+          case Input::Special::Unused:
           default:
             stop = true;
             break;
@@ -157,6 +128,33 @@ help ()
   return ch;
 }
 
+void
+search (const SpaceInfo &si)
+{
+  static Input::History S_history;
+  Display::format_footer ("Search: ");
+  auto text = Input::get_line (&S_history, [&](const std::string &text_) {
+    Select::select (text_, si);
+    Display::space_info ();
+    Display::format_footer ("Search: %s", text_.c_str ());
+    Display::refresh ();
+  });
+  if (text.empty ())
+    Select::clear_selection ();
+  Display::footer ();
+}
+
+std::string_view
+get_go_to_path ()
+{
+  static Input::History S_history;
+  Display::format_footer ("Go to: ");
+  return Input::get_line (&S_history, [&](const std::string &text) {
+    Display::format_footer ("Go to: %s", text.c_str ());
+    Display::refresh ();
+  });
+}
+
 int
 main (const int argc, const char **argv)
 {
@@ -168,7 +166,6 @@ main (const int argc, const char **argv)
                    : fs::current_path ());
   fs::path pending_path;
   bool sort_ascending = false;
-  std::string_view search = ""sv;
 
   auto maybe_goto_pending = [&]() {
     if (fs::is_directory (pending_path) && pending_path != dev_path)
@@ -188,9 +185,8 @@ main (const int argc, const char **argv)
           }
         else
           {
-            // Display::set_space_info (si) already happened in show_progress
             Display::set_cursor (0);
-            Select::select (search, *si);
+            Select::re_select (*si);
           }
         Display::set_space_info (si);
         Display::footer ();
@@ -226,7 +222,7 @@ main (const int argc, const char **argv)
   bool stop = false;
   while (!stop)
     {
-      ch = my_getch ();
+      ch = Input::get_char ();
 main_loop_repeat:
       switch (ch)
         {
@@ -265,9 +261,7 @@ main_loop_repeat:
             si->sort (sort_ascending);
             break;
           case '/':
-            search = Display::input ("Search");
-            Display::footer ();
-            Select::select (search, *si);
+            search (*si);
             break;
           case 'n':
             Select::next ();
@@ -279,7 +273,7 @@ main_loop_repeat:
             Select::clear_selection ();
             break;
           case 'h':
-            pending_path = Display::input ("Go to");
+            pending_path = get_go_to_path ();
             if (pending_path.empty ())
               {
                 Display::footer ();

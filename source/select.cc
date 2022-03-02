@@ -1,8 +1,12 @@
 #include "select.hh"
+#include "display.hh"
+#include "input.hh"
 
 static std::vector<usize> S_selection;
 static usize S_selection_current;
 static constexpr usize S_selection_npos = static_cast<usize> (-1);
+static Input::History S_history;
+static std::string S_last_word;
 
 namespace Select
 {
@@ -11,6 +15,7 @@ clear_selection ()
 {
   S_selection.clear ();
   S_selection_current = S_selection_npos;
+  S_last_word.clear ();
 }
 
 void
@@ -26,6 +31,13 @@ select (std::string_view word, const SpaceInfo &si)
         S_selection.push_back (i);
       ++i;
     }
+  S_last_word = word;
+}
+
+void
+re_select (const SpaceInfo &si)
+{
+  select (S_last_word, si);
 }
 
 void

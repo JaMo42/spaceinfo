@@ -22,10 +22,9 @@ void set_path (const fs::path &path);
 void header ();
 void space_info (bool show_cursor = true);
 void footer ();
+void format_footer (const char *fmt, ...);
 
 void move_cursor (ssize by);
 void set_cursor (usize to);
 fs::path select (const SpaceInfo &from, const fs::path &current);
-
-std::string_view input (std::string_view purpose);
 }

@@ -26,8 +26,12 @@ build/options.o: source/options.cc source/options.hh
 build/main.o: source/main.cc source/display.hh source/space_info.hh source/stdafx.hh
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-spaceinfo: build/space_info.o build/display.o build/select.o build/options.o build/main.o
-	$(CXX) $(LDFLAGS) -o $@ $^
+build/input.o: source/input.cc source/input.hh source/stdafx.hh
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+spaceinfo: build/space_info.o build/display.o build/select.o build/options.o \
+           build/main.o build/input.o
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 vg: spaceinfo
 	valgrind $(VGFLAGS) ./spaceinfo $(VG_ARGS)

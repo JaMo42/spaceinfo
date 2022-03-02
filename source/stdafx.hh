@@ -6,11 +6,14 @@
 #include <cinttypes>
 #include <cstring>
 #include <cerrno>
+#include <cstdarg>
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <map>
 #include <functional>
+#include <list>
 
 #include <filesystem>
 #include <system_error>
@@ -35,3 +38,6 @@ using ssize = std::intmax_t;
 
 using namespace std::literals;
 namespace fs = std::filesystem;
+
+#define dbgln(fmt, ...) \
+  std::fprintf (stderr, "%s: " fmt "\n", __FUNCTION__ __VA_OPT__(,) __VA_ARGS__)
