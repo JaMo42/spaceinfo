@@ -312,7 +312,8 @@ footer ()
   fill_line (row);
   mvaddstr (row, 0, "Total disk usage: ");
   print_size (S_si->total ());
-  printw (", %" PRIu64 " Items, ", S_si->item_count ());
+  printw (", %" PRIu64 " Items, %" PRIu64 " Files total, ",
+          S_si->item_count (), S_si->total_file_count ());
   print_size (file_system_free);
   addstr (" Free");
   move (row, S_display_width - sizeof (help_info));
