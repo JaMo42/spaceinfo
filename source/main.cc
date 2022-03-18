@@ -4,6 +4,7 @@
 #include "display.hh"
 #include "select.hh"
 #include "input.hh"
+#include "nc-help/help.h"
 
 static void
 show_progress (const SpaceInfo &si)
@@ -22,110 +23,77 @@ fail ()
   std::exit (1);
 }
 
-static int
+static bool
 help ()
 {
-  static constexpr std::array text = {
-    "k/↑     Move cursor up"sv,
-    "j/↓     Move cursor down"sv,
-    "K/PgUp  Move cursor up multiple items"sv,
-    "J/PgDn  Move cursor down multiple items"sv,
-    "g/Home  Move cursor to the start"sv,
-    "G/End   Move cursor to the bottom"sv,
-    "Enter/Space"sv,
-    "        Enter the directory under the cursor"sv,
-    "r/i     Reverse sorting order"sv,
-    "'/'     Begin search"sv,
-    "n       Select the next search result"sv,
-    "N       Select the previous search result"sv,
-    "c       Clear search"sv,
-    "h       Go to a specific path"sv,
-    "R       Reload the current directory"sv
+  static help_text_type help_text = {
+    {"k/↑",         "Move cursor up"},
+    {"j/↓",         "Move cursor down"},
+    {"K/PgUp",      "Move cursor up multiple items"},
+    {"J/PgDn",      "Move cursor down multiple items"},
+    {"g/Home",      "Move cursor to the start"},
+    {"G/End",       "Move cursor to the bottom"},
+    {"Enter/Space", "Enter the directory under the cursor"},
+    {"r/i",         "Reverse sorting order"},
+    {"'/'",         "Begin search"},
+    {"n",           "Select the next search result"},
+    {"N",           "Select the previous search result"},
+    {"c",           "Clear search"},
+    {"h",           "Go to a specific path"},
+    {"R",           "Reload the current directory"}
   };
-  static constexpr usize text_width = []() consteval -> usize {
-    return std::max_element (
-      std::begin (text), std::end (text),
-      [](const std::string_view &a, const std::string_view &b) {
-        return a.size () < b.size ();
-      }
-    )->size ();
-  } ();
-  const auto [width, height] = Display::size ();
-  const int content_height = std::min (static_cast<int> (text.size ()),
-                                       height - 6);
-  const int x = (width - text_width) / 2;
-  const int y = (height - content_height - 2) / 2;
-  WINDOW *win = newwin (content_height + 2, text_width + 2, y, x);
+  static nc_help::Help help (help_text);
 
-  auto put_lines = [&win](usize begin, usize end) {
-    for (int line = 1; begin != end; ++begin, ++line)
-      mvwaddstr (win, line, 1, text[begin].data ());
-  };
+  help.resize_offset (2, 2);
+  help.draw ();
+  box (help.window (), 0, 0);
+  help.refresh ();
 
-  box (win, 0, 0);
-  put_lines (0, content_height);
-  wrefresh (win);
+  if (!help.can_scroll ())
+    return Input::get_char () == KEY_RESIZE;
 
+  const int page_move_amount = std::max (5, (getmaxy (help.window ()) - 3) / 2);
   int ch;
-  if (static_cast<usize> (content_height) == text.size ())
-    {
-      ch = Input::get_char ();
-      delwin (win);
-      return ch;
-    }
-
-  const int max_pos = text.size () - content_height;
-  const int page_move_amount = std::max (5, (content_height - 1) / 2);
   bool stop = false;
-  int pos = 0;
+  bool propagate_resize = false;
   while (!stop)
     {
       switch (ch = Input::get_char ())
         {
           case KEY_UP:
           case 'k':
-            if (pos > 0)
-              --pos;
+            help.move_cursor (-1);
             break;
           case KEY_DOWN:
           case 'j':
-            if (pos < max_pos)
-              ++pos;
+            help.move_cursor (1);
             break;
           case KEY_PPAGE:
           case 'K':
-            if (pos < page_move_amount)
-              pos = 0;
-            else
-              pos -= page_move_amount;
+            help.move_cursor (-page_move_amount);
             break;
           case KEY_NPAGE:
           case 'J':
-            if (pos + page_move_amount > max_pos)
-              pos = max_pos;
-            else
-              pos += page_move_amount;
+            help.move_cursor (page_move_amount);
             break;
           case KEY_HOME:
           case 'g':
-            pos = 0;
+            help.set_cursor (0);
             break;
           case KEY_END:
           case 'G':
-            pos = max_pos;
+            help.set_cursor (static_cast<unsigned> (-1));
             break;
-          case Input::Special::Unused:
           default:
-            stop = true;
+            propagate_resize = ch == KEY_RESIZE;
+            stop = false;
             break;
         }
-      wclear (win);
-      box (win, 0, 0);
-      put_lines (pos, pos + content_height);
-      wrefresh (win);
+      help.draw ();
+      box (help.window (), 0, 0);
+      help.refresh ();
     }
-  delwin (win);
-  return ch;
+  return propagate_resize;
 }
 
 void
@@ -223,7 +191,6 @@ main (const int argc, const char **argv)
   while (!stop)
     {
       ch = Input::get_char ();
-main_loop_repeat:
       switch (ch)
         {
           case KEY_UP:
@@ -296,17 +263,17 @@ main_loop_repeat:
             sort_ascending = false;
             break;
           case '?':
-            ch = help ();
+            if (help ())
+              goto do_resize;
             Display::clear ();
             Display::header ();
-            Display::space_info ();
             Display::footer ();
-            Display::refresh ();
-            goto main_loop_repeat;
+            break;
           case 'q':
             stop = true;
             break;
           case KEY_RESIZE:
+do_resize:
             Display::refresh_size ();
             Display::clear ();
             Display::header ();

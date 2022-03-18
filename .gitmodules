@@ -1,3 +1,6 @@
 [submodule "source/flag-cpp"]
 	path = source/flag-cpp
 	url = https://github.com/JaMo42/flag-cpp
+[submodule "source/nc-help"]
+	path = source/nc-help
+	url = https://github.com/JaMo42/nc-help
