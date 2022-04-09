@@ -86,7 +86,7 @@ help ()
             break;
           default:
             propagate_resize = ch == KEY_RESIZE;
-            stop = false;
+            stop = true;
             break;
         }
       help.draw ();
